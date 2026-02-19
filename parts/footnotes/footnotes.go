@@ -40,6 +40,9 @@ type CT_Footnotes struct {
 
 	// namespaces preserves the original xmlns:* declarations on the root
 	// element so they survive a round-trip without loss.
+	// Attrs are stored in normalised form: {Local: "xmlns:w"} not
+	// {Space: "xmlns", Local: "w"}, because Go's xml.Encoder would mangle
+	// the latter into "_xmlns:w".
 	namespaces []xml.Attr
 }
 
@@ -57,8 +60,25 @@ func (fn *CT_Footnotes) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 	}
 
 	// Preserve namespace declarations for round-trip fidelity.
-	fn.namespaces = make([]xml.Attr, len(start.Attr))
-	copy(fn.namespaces, start.Attr)
+	// Go's xml.Decoder exposes xmlns:prefix="…" as Attr with
+	// Name.Space == "xmlns".  We normalise to {Local: "xmlns:prefix"}
+	// so that the xml.Encoder writes them literally on output instead of
+	// mangling them into "_xmlns:prefix".
+	fn.namespaces = make([]xml.Attr, 0, len(start.Attr))
+	for _, a := range start.Attr {
+		if a.Name.Space == "xmlns" {
+			// xmlns:prefix="uri" → {Local: "xmlns:prefix", Value: uri}
+			fn.namespaces = append(fn.namespaces, xml.Attr{
+				Name:  xml.Name{Local: "xmlns:" + a.Name.Local},
+				Value: a.Value,
+			})
+		} else if a.Name.Space == "" && a.Name.Local == "xmlns" {
+			// default namespace xmlns="uri"
+			fn.namespaces = append(fn.namespaces, a)
+		}
+		// Non-namespace attributes on the root element are intentionally
+		// dropped — the OOXML spec defines none.
+	}
 
 	for {
 		tok, err := d.Token()
@@ -68,7 +88,6 @@ func (fn *CT_Footnotes) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 
 		switch t := tok.(type) {
 		case xml.StartElement:
-			// We expect <w:footnote> or <w:endnote> children.
 			if t.Name.Local == fn.childLocal {
 				var fe CT_FtnEdn
 				if err := fe.unmarshal(d, t); err != nil {
@@ -141,7 +160,6 @@ type CT_FtnEdn struct {
 }
 
 // unmarshal decodes a <w:footnote>/<w:endnote> element from the decoder.
-// It is called from CT_Footnotes.UnmarshalXML after reading the start element.
 func (fe *CT_FtnEdn) unmarshal(d *xml.Decoder, start xml.StartElement) error {
 	// Parse attributes (w:type, w:id).
 	for _, attr := range start.Attr {
@@ -167,14 +185,13 @@ func (fe *CT_FtnEdn) unmarshal(d *xml.Decoder, start xml.StartElement) error {
 
 		switch t := tok.(type) {
 		case xml.StartElement:
-			// Try the registered factory first.
 			if el := shared.CreateBlockElement(t.Name); el != nil {
 				if err := d.DecodeElement(el, &t); err != nil {
 					return err
 				}
 				fe.Content = append(fe.Content, el)
 			} else {
-				// Unknown element — preserve as RawXML for round-trip.
+				// Unknown element → preserve as RawXML for round-trip.
 				var raw shared.RawXML
 				if err := d.DecodeElement(&raw, &t); err != nil {
 					return err
@@ -193,7 +210,6 @@ func (fe *CT_FtnEdn) marshal(e *xml.Encoder, childLocal string) error {
 		Name: xml.Name{Local: "w:" + childLocal},
 	}
 
-	// Write attributes using w: prefix.
 	if fe.Type != nil {
 		start.Attr = append(start.Attr, xml.Attr{
 			Name:  xml.Name{Local: "w:type"},
@@ -209,15 +225,13 @@ func (fe *CT_FtnEdn) marshal(e *xml.Encoder, childLocal string) error {
 		return err
 	}
 
-	// Encode block-level children.
 	for _, bl := range fe.Content {
 		switch v := bl.(type) {
 		case shared.RawXML:
-			if err := v.MarshalXML(e, xml.StartElement{}); err != nil {
+			if err := encodeRawXML(e, v); err != nil {
 				return err
 			}
 		default:
-			// Typed elements (CT_P, CT_Tbl, …) implement xml.Marshaler.
 			if m, ok := bl.(xml.Marshaler); ok {
 				if err := m.MarshalXML(e, xml.StartElement{}); err != nil {
 					return err
@@ -227,6 +241,61 @@ func (fe *CT_FtnEdn) marshal(e *xml.Encoder, childLocal string) error {
 	}
 
 	return e.EncodeToken(start.End())
+}
+
+// ---------------------------------------------------------------------------
+// RawXML serialisation helpers
+// ---------------------------------------------------------------------------
+
+// encodeRawXML writes a shared.RawXML element through the encoder without
+// replaying inner tokens through a fresh xml.Decoder.
+//
+// The standard token-replay approach (create a new xml.Decoder over Inner
+// bytes, feed each token to the Encoder) is broken because the new Decoder
+// lacks the parent's namespace context.  Prefixed names like "w:pPr" inside
+// Inner resolve to {Space: "w", Local: "pPr"} (literal prefix as URI) and
+// the Encoder then emits spurious xmlns="w" declarations that accumulate on
+// every round-trip.
+//
+// Instead we use EncodeElement with a ",innerxml" struct field: the encoder
+// writes the start/end tags (with correct prefix) and injects the Inner
+// bytes verbatim between them — no re-parsing, no namespace corruption.
+func encodeRawXML(e *xml.Encoder, r shared.RawXML) error {
+	// Build the StartElement with prefixed names so the encoder writes
+	// them literally (e.g. "w:p") without trying to declare namespaces.
+	start := xml.StartElement{
+		Name: xml.Name{Local: nsToPrefix(r.XMLName.Space, r.XMLName.Local)},
+	}
+	for _, a := range r.Attrs {
+		start.Attr = append(start.Attr, xml.Attr{
+			Name:  xml.Name{Local: nsToPrefix(a.Name.Space, a.Name.Local)},
+			Value: a.Value,
+		})
+	}
+
+	// The encoder writes <w:p attrs...>{Inner bytes verbatim}</w:p>.
+	type rawContent struct {
+		Inner []byte `xml:",innerxml"`
+	}
+	return e.EncodeElement(rawContent{Inner: r.Inner}, start)
+}
+
+// nsToPrefix builds a "prefix:local" string from an xml.Name.
+// Known namespace URIs are mapped to their conventional prefix; short strings
+// (like "w") that appear when inner bytes are re-parsed without context are
+// passed through as-is.
+func nsToPrefix(space, local string) string {
+	if space == "" {
+		return local
+	}
+	switch space {
+	case nsW:
+		return "w:" + local
+	default:
+		// For unresolved prefix strings ("w", "r", …) from innerxml
+		// re-parsing, or other namespace URIs, use the space directly.
+		return space + ":" + local
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -244,12 +313,16 @@ func Parse(data []byte) (*CT_Footnotes, error) {
 
 // Serialize serializes a CT_Footnotes structure back to XML bytes.
 // The output includes the XML declaration.
+//
+// No indentation is applied because RawXML inner bytes are written verbatim:
+// the encoder's indent whitespace before end-tags would be captured as part
+// of Inner on re-parse, accumulating on every round-trip.  Compact output
+// guarantees stable round-trips.
 func Serialize(fn *CT_Footnotes) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString(xml.Header)
 
 	enc := xml.NewEncoder(&buf)
-	enc.Indent("", "  ")
 
 	if err := enc.Encode(fn); err != nil {
 		return nil, fmt.Errorf("footnotes.Serialize: %w", err)

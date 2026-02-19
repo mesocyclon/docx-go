@@ -205,7 +205,7 @@ func TestExtraNamespacesPreserved(t *testing.T) {
 	}
 
 	outStr := string(out)
-	if !strings.Contains(outStr, "w14") {
+	if !strings.Contains(outStr, "xmlns:w14") {
 		t.Errorf("w14 namespace lost in round-trip.\nGot:\n%s", outStr)
 	}
 }
@@ -287,8 +287,9 @@ func TestUnknownBlockElementPreserved(t *testing.T) {
 	}
 }
 
-// TestXMLContentRoundTrip does a byte-level comparison of key content
-// fragments to ensure that the inner XML of footnote paragraphs is preserved.
+// TestXMLContentRoundTrip performs a double round-trip (parse → serialize →
+// parse → serialize) and verifies byte-level stability: the second
+// serialization must be identical to the first.
 func TestXMLContentRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -312,10 +313,48 @@ func TestXMLContentRoundTrip(t *testing.T) {
 		t.Fatalf("re-Serialize: %v", err)
 	}
 
-	// The second round-trip should be byte-identical to the first.
+	// The second round-trip must be byte-identical to the first.
 	if string(out) != string(out2) {
 		t.Errorf("second round-trip differs from first:\n--- first ---\n%s\n--- second ---\n%s",
 			string(out), string(out2))
+	}
+}
+
+// TestEndnotesDoubleRoundTrip verifies byte-level stability for endnotes.
+func TestEndnotesDoubleRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	input := `<w:endnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+		`<w:endnote w:type="separator" w:id="-1">` +
+		`<w:p><w:r><w:separator/></w:r></w:p>` +
+		`</w:endnote>` +
+		`<w:endnote w:id="1">` +
+		`<w:p><w:r><w:t>Endnote.</w:t></w:r></w:p>` +
+		`</w:endnote>` +
+		`</w:endnotes>`
+
+	fn, err := Parse([]byte(input))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+
+	out1, err := Serialize(fn)
+	if err != nil {
+		t.Fatalf("Serialize 1: %v", err)
+	}
+
+	fn2, err := Parse(out1)
+	if err != nil {
+		t.Fatalf("re-Parse: %v", err)
+	}
+	out2, err := Serialize(fn2)
+	if err != nil {
+		t.Fatalf("Serialize 2: %v", err)
+	}
+
+	if string(out1) != string(out2) {
+		t.Errorf("endnotes double round-trip unstable:\n--- first ---\n%s\n--- second ---\n%s",
+			string(out1), string(out2))
 	}
 }
 
