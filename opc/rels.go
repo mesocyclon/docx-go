@@ -1,0 +1,55 @@
+package opc
+
+import "encoding/xml"
+
+const nsRelationships = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+// xmlRelationships represents a .rels XML document.
+type xmlRelationships struct {
+	XMLName       xml.Name            `xml:"Relationships"`
+	Relationships []xmlRelationship   `xml:"Relationship"`
+}
+
+type xmlRelationship struct {
+	ID         string `xml:"Id,attr"`
+	Type       string `xml:"Type,attr"`
+	Target     string `xml:"Target,attr"`
+	TargetMode string `xml:"TargetMode,attr,omitempty"`
+}
+
+// parseRels parses a .rels XML document into a slice of Relationship.
+func parseRels(data []byte) ([]Relationship, error) {
+	var xr xmlRelationships
+	if err := xml.Unmarshal(data, &xr); err != nil {
+		return nil, err
+	}
+	rels := make([]Relationship, len(xr.Relationships))
+	for i, r := range xr.Relationships {
+		rels[i] = Relationship{
+			ID:         r.ID,
+			Type:       r.Type,
+			Target:     r.Target,
+			TargetMode: r.TargetMode,
+		}
+	}
+	return rels, nil
+}
+
+// buildRels serializes relationships into .rels XML bytes.
+func buildRels(rels []Relationship) ([]byte, error) {
+	if len(rels) == 0 {
+		return nil, nil
+	}
+	xr := xmlRelationships{
+		XMLName: xml.Name{Space: nsRelationships, Local: "Relationships"},
+	}
+	for _, r := range rels {
+		xr.Relationships = append(xr.Relationships, xmlRelationship{
+			ID:         r.ID,
+			Type:       r.Type,
+			Target:     r.Target,
+			TargetMode: r.TargetMode,
+		})
+	}
+	return marshalXMLWithHeader(xr)
+}
