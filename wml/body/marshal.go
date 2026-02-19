@@ -6,13 +6,27 @@ import (
 	"github.com/vortex/docx-go/xmltypes"
 )
 
+// welem builds an xml.Name in the WML namespace.
+// Go's encoder tracks prefix bindings registered via {Space:"xmlns",Local:"w"}
+// attrs on ancestor elements.  When it encounters an element name with
+// Space == NSw it reuses the "w" prefix → <w:body>, <w:p>, etc.
+func welem(local string) xml.Name {
+	return xml.Name{Space: xmltypes.NSw, Local: local}
+}
+
+// nsattr builds a namespace-declaration attribute that the Go encoder
+// recognises and registers in its prefix table: {Space:"xmlns", Local:prefix}.
+func nsattr(prefix, uri string) xml.Attr {
+	return xml.Attr{Name: xml.Name{Space: "xmlns", Local: prefix}, Value: uri}
+}
+
 // ---------------------------------------------------------------------------
 // CT_Document — MarshalXML
 // ---------------------------------------------------------------------------
 
 // MarshalXML writes the <w:document> root element with preserved namespaces.
 func (doc *CT_Document) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	start.Name = xml.Name{Local: "w:document"}
+	start.Name = welem("document")
 
 	if len(doc.Namespaces) > 0 {
 		start.Attr = doc.Namespaces
@@ -26,7 +40,7 @@ func (doc *CT_Document) MarshalXML(e *xml.Encoder, start xml.StartElement) error
 
 	// Body
 	if doc.Body != nil {
-		bodyStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "body"}}
+		bodyStart := xml.StartElement{Name: welem("body")}
 		if err := e.EncodeElement(doc.Body, bodyStart); err != nil {
 			return err
 		}
@@ -62,7 +76,7 @@ func (b *CT_Body) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	// Trailing section properties
 	if b.SectPr != nil {
-		sectStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "sectPr"}}
+		sectStart := xml.StartElement{Name: welem("sectPr")}
 		if err := e.EncodeElement(b.SectPr, sectStart); err != nil {
 			return err
 		}
@@ -82,21 +96,19 @@ func (sdt *CT_SdtBlock) MarshalXML(e *xml.Encoder, start xml.StartElement) error
 	}
 
 	if sdt.SdtPr != nil {
-		prStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "sdtPr"}}
-		if err := e.EncodeElement(sdt.SdtPr, prStart); err != nil {
+		if err := e.EncodeElement(sdt.SdtPr, xml.StartElement{Name: welem("sdtPr")}); err != nil {
 			return err
 		}
 	}
 	if sdt.SdtEndPr != nil {
-		eprStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "sdtEndPr"}}
-		if err := e.EncodeElement(sdt.SdtEndPr, eprStart); err != nil {
+		if err := e.EncodeElement(sdt.SdtEndPr, xml.StartElement{Name: welem("sdtEndPr")}); err != nil {
 			return err
 		}
 	}
 
 	// sdtContent wrapper
 	if len(sdt.SdtContent) > 0 {
-		contentStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "sdtContent"}}
+		contentStart := xml.StartElement{Name: welem("sdtContent")}
 		if err := e.EncodeToken(contentStart); err != nil {
 			return err
 		}
@@ -120,14 +132,11 @@ func (sdt *CT_SdtBlock) MarshalXML(e *xml.Encoder, start xml.StartElement) error
 func marshalBlockElement(e *xml.Encoder, el interface{}) error {
 	switch v := el.(type) {
 	case ParagraphElement:
-		pStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "p"}}
-		return e.EncodeElement(v.P, pStart)
+		return e.EncodeElement(v.P, xml.StartElement{Name: welem("p")})
 	case TableElement:
-		tStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "tbl"}}
-		return e.EncodeElement(v.T, tStart)
+		return e.EncodeElement(v.T, xml.StartElement{Name: welem("tbl")})
 	case SdtBlockElement:
-		sdtStart := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "sdt"}}
-		return e.EncodeElement(v.Sdt, sdtStart)
+		return e.EncodeElement(v.Sdt, xml.StartElement{Name: welem("sdt")})
 	case RawBlockElement:
 		return e.EncodeElement(&v.Raw, xml.StartElement{Name: v.Raw.XMLName})
 	}
@@ -138,24 +147,29 @@ func marshalBlockElement(e *xml.Encoder, el interface{}) error {
 // Default namespaces for new documents
 // ---------------------------------------------------------------------------
 
+// defaultDocumentNamespaces returns the standard set of xmlns declarations
+// for a new document.xml.  Attributes use {Space:"xmlns", Local:prefix} so
+// Go's encoder registers the prefix bindings and all child elements that
+// reference the same Space URI reuse the declared prefixes.
 func defaultDocumentNamespaces() []xml.Attr {
 	return []xml.Attr{
-		{Name: xml.Name{Local: "xmlns:wpc"}, Value: "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"},
-		{Name: xml.Name{Local: "xmlns:mc"}, Value: xmltypes.NSmc},
-		{Name: xml.Name{Local: "xmlns:o"}, Value: xmltypes.NSo},
-		{Name: xml.Name{Local: "xmlns:r"}, Value: xmltypes.NSr},
-		{Name: xml.Name{Local: "xmlns:m"}, Value: xmltypes.NSm},
-		{Name: xml.Name{Local: "xmlns:v"}, Value: xmltypes.NSv},
-		{Name: xml.Name{Local: "xmlns:wp14"}, Value: "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"},
-		{Name: xml.Name{Local: "xmlns:wp"}, Value: xmltypes.NSwp},
-		{Name: xml.Name{Local: "xmlns:w10"}, Value: xmltypes.NSw10},
-		{Name: xml.Name{Local: "xmlns:w"}, Value: xmltypes.NSw},
-		{Name: xml.Name{Local: "xmlns:w14"}, Value: xmltypes.NSw14},
-		{Name: xml.Name{Local: "xmlns:w15"}, Value: xmltypes.NSw15},
-		{Name: xml.Name{Local: "xmlns:wpg"}, Value: "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"},
-		{Name: xml.Name{Local: "xmlns:wpi"}, Value: "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"},
-		{Name: xml.Name{Local: "xmlns:wne"}, Value: "http://schemas.microsoft.com/office/word/2006/wordml"},
-		{Name: xml.Name{Local: "xmlns:wps"}, Value: "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"},
-		{Name: xml.Name{Local: "mc:Ignorable"}, Value: "w14 w15 wp14"},
+		nsattr("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"),
+		nsattr("mc", xmltypes.NSmc),
+		nsattr("o", xmltypes.NSo),
+		nsattr("r", xmltypes.NSr),
+		nsattr("m", xmltypes.NSm),
+		nsattr("v", xmltypes.NSv),
+		nsattr("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"),
+		nsattr("wp", xmltypes.NSwp),
+		nsattr("w10", xmltypes.NSw10),
+		nsattr("w", xmltypes.NSw),
+		nsattr("w14", xmltypes.NSw14),
+		nsattr("w15", xmltypes.NSw15),
+		nsattr("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"),
+		nsattr("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"),
+		nsattr("wne", "http://schemas.microsoft.com/office/word/2006/wordml"),
+		nsattr("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"),
+		// mc:Ignorable is a regular (non-xmlns) attribute in the mc namespace.
+		{Name: xml.Name{Space: xmltypes.NSmc, Local: "Ignorable"}, Value: "w14 w15 wp14"},
 	}
 }
