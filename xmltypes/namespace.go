@@ -53,6 +53,7 @@ const (
 	// Extended properties
 	NSvt = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
 	NSep = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
+	NSsl = "http://schemas.openxmlformats.org/schemaLibrary/2006/main"
 )
 
 // ============================================================
