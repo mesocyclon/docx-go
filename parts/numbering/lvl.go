@@ -21,37 +21,18 @@ type CT_Lvl struct {
 	Tentative *bool   `xml:"tentative,attr,omitempty"`
 
 	// Elements — strict order per XSD (see patterns.md §2.9)
-	Start           *xmltypes.CT_DecimalNumber
-	NumFmt          *xmltypes.CT_String
-	LvlRestart      *xmltypes.CT_DecimalNumber
-	PStyle          *xmltypes.CT_String
-	IsLgl           *xmltypes.CT_OnOff
-	Suff            *xmltypes.CT_String
-	LvlText         *xmltypes.CT_String
-	LvlPicBulletId  *xmltypes.CT_DecimalNumber
-	LvlJc           *ppr.CT_Jc
-	PPr             *ppr.CT_PPrBase
-	RPr             *rpr.CT_RPrBase
-	Extra           []shared.RawXML
-}
-
-// lvlFieldMapping defines the XSD-mandated element order for CT_Lvl.
-type lvlFieldMapping struct {
-	local string
-}
-
-var lvlFieldOrder = []lvlFieldMapping{
-	{"start"},
-	{"numFmt"},
-	{"lvlRestart"},
-	{"pStyle"},
-	{"isLgl"},
-	{"suff"},
-	{"lvlText"},
-	{"lvlPicBulletId"},
-	{"lvlJc"},
-	{"pPr"},
-	{"rPr"},
+	Start          *xmltypes.CT_DecimalNumber
+	NumFmt         *xmltypes.CT_String
+	LvlRestart     *xmltypes.CT_DecimalNumber
+	PStyle         *xmltypes.CT_String
+	IsLgl          *xmltypes.CT_OnOff
+	Suff           *xmltypes.CT_String
+	LvlText        *xmltypes.CT_String
+	LvlPicBulletId *xmltypes.CT_DecimalNumber
+	LvlJc          *ppr.CT_Jc
+	PPr            *ppr.CT_PPrBase
+	RPr            *rpr.CT_RPrBase
+	Extra          []shared.RawXML
 }
 
 // MarshalXML serialises CT_Lvl with elements in the strict XSD order.
