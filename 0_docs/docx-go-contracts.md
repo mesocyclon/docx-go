@@ -1855,53 +1855,203 @@ func AutoFix(doc *packaging.Document) []string // описания исправ�
 
 ## C-32: `docx` (Public API)
 
-**Импортирует**: `packaging`, `validator`, `units`
+**Импортирует**: `packaging`, `validator`, `units`,
+`wml/body`, `wml/para`, `wml/run`, `wml/table`, `wml/sectpr`, `wml/hdft`, `wml/shared`,
+`wml/rpr`, `wml/ppr`, `coreprops`, `parts/styles`
+
+> C-32 — тонкая обёртка поверх WML-типов. Каждый wrapper предоставляет
+> convenience-методы (Add/Remove/Set/Get) **и** escape hatch `X()` для
+> прямого доступа к нижележащему типу (см. patterns.md раздел 14).
+>
+> **Как Body.Content хранит элементы (факт реализации C-17 + C-13):**
+> - `*table.CT_Tbl` — указатель (CT_Tbl содержит embedded `shared.BlockLevelMarker`)
+> - `*para.CT_P` — указатель (аналогично)
+> - `shared.RawXML` — value
+>
+> **Как tbl.Content хранит строки (факт реализации C-13):**
+> - `table.CT_Row` — **value** (не указатель), реализует `TblContent` через value receiver
+> - `table.RawTblContent` — value
+>
+> **Как row.Content хранит ячейки (факт реализации C-13):**
+> - `table.CT_Tc` — **value** (не указатель), реализует `RowContent` через value receiver
+> - `table.RawRowContent` — value
+>
+> Следствие: Row и Cell wrapper'ы не могут хранить указатель на свой WML-тип
+> (значение живёт внутри interface slice). Вместо этого хранят координаты
+> (tbl + idx). Подробности: patterns.md раздел 15.
 
 ```go
 package docx
 
-import "github.com/vortex/docx-go/units"
+import (
+    "github.com/vortex/docx-go/units"
+    "github.com/vortex/docx-go/packaging"
+    "github.com/vortex/docx-go/validator"
+    "github.com/vortex/docx-go/coreprops"
+    "github.com/vortex/docx-go/wml/body"
+    "github.com/vortex/docx-go/wml/para"
+    "github.com/vortex/docx-go/wml/run"
+    "github.com/vortex/docx-go/wml/table"
+    "github.com/vortex/docx-go/wml/sectpr"
+    "github.com/vortex/docx-go/wml/hdft"
+    "github.com/vortex/docx-go/wml/shared"
+    "github.com/vortex/docx-go/parts/styles"
+)
 
-// === Жизненный цикл ===
+// ================================================================
+// Жизненный цикл
+// ================================================================
+
 func Open(path string) (*Document, error)
 func New() *Document
 func (d *Document) Save(path string) error
 func (d *Document) Validate() []validator.Issue
 
-// === Document ===
-type Document struct { /* wraps packaging.Document */ }
+// ================================================================
+// Document
+// ================================================================
+
+type Document struct { /* wraps *packaging.Document */ }
 func (d *Document) Body() *Body
 func (d *Document) Styles() *Styles
 func (d *Document) AddHeader(hdrType string) *Header    // "default"|"first"|"even"
 func (d *Document) AddFooter(ftrType string) *Footer
 func (d *Document) CoreProperties() *coreprops.CoreProperties
 func (d *Document) SetCoreProperties(cp *coreprops.CoreProperties)
+func (d *Document) X() *packaging.Document              // escape hatch
 
-// === Body ===
-type Body struct { /* wraps CT_Body */ }
+// ================================================================
+// Styles — обёртка над styles.CT_Styles
+// ================================================================
+
+type Styles struct { /* wraps *styles.CT_Styles */ }
+func (s *Styles) X() *styles.CT_Styles                  // escape hatch
+// Convenience-методы для Styles — v2 (пока пользователь работает через X())
+
+// ================================================================
+// Body — обёртка над body.CT_Body
+// ================================================================
+
+// Body хранит *body.CT_Body (указатель). Мутации через wrapper
+// отражаются в документе напрямую.
+type Body struct {
+    raw *body.CT_Body
+}
+
+// --- Добавление ---
 func (b *Body) AddParagraph() *Paragraph
 func (b *Body) AddHeading(text string, level int) *Paragraph
 func (b *Body) AddTable(rows, cols int) *Table
 func (b *Body) AddPageBreak()
 func (b *Body) AddSectionBreak(breakType string) *Section
-func (b *Body) Paragraphs() []*Paragraph
-func (b *Body) Tables() []*Table
 
-// === Paragraph ===
-type Paragraph struct { /* wraps CT_P */ }
+// --- Вставка в позицию ---
+// index = позиция в Body.Content (среди ВСЕХ block-level элементов:
+// *para.CT_P, *table.CT_Tbl, shared.RawXML, etc.).
+// Элемент вставляется ПЕРЕД указанной позицией.
+// index == ElementCount() → вставка в конец (аналогично Add).
+// Возвращает error если index < 0 || index > ElementCount().
+func (b *Body) InsertParagraphAt(index int) (*Paragraph, error)
+func (b *Body) InsertTableAt(index int, rows, cols int) (*Table, error)
+
+// --- Чтение ---
+func (b *Body) Paragraphs() []*Paragraph              // только *para.CT_P (фильтр по type assert)
+func (b *Body) Tables() []*Table                       // только *table.CT_Tbl (фильтр по type assert)
+func (b *Body) ElementCount() int                      // len(raw.Content)
+func (b *Body) Section() *Section                      // body-level raw.SectPr
+
+// --- Удаление ---
+// index = позиция в Body.Content (как для InsertAt).
+// Возвращает error если index вне диапазона.
+func (b *Body) RemoveElement(index int) error          // удалить любой block element
+func (b *Body) Clear()                                 // удалить всё содержимое (SectPr сохраняется)
+
+// --- Поиск и замена ---
+// Работает ТОЛЬКО по параграфам верхнего уровня Body.Content.
+// НЕ ищет в таблицах, headers, footers, footnotes (v1 ограничение).
+// Работает в пределах одного Run (текст, разбитый между ранами, не находится).
+// Подробности и ограничения: см. patterns.md раздел 16.
+func (b *Body) FindText(needle string) []TextLocation  // поиск по body-level параграфам
+func (b *Body) ReplaceText(old, new string) int         // замена, возвращает кол-во замен
+
+// --- Escape hatch ---
+func (b *Body) X() *body.CT_Body                       // прямой доступ к нижнему слою
+
+// ================================================================
+// TextLocation — результат FindText
+// ================================================================
+
+type TextLocation struct {
+    // BlockIndex — позиция элемента в Body.Content[]
+    // (по этому индексу лежит *para.CT_P).
+    BlockIndex int
+    // RunIndex — позиция RunItem в CT_P.Content[] (среди ВСЕХ ParagraphContent,
+    // не только RunItem; для получения конкретного рана используй RunIndex
+    // как индекс в полном слайсе CT_P.Content).
+    RunIndex  int
+    Paragraph *Paragraph // wrapper
+    Run       *Run       // wrapper
+}
+
+// ================================================================
+// Paragraph — обёртка над para.CT_P
+// ================================================================
+
+// Paragraph хранит *para.CT_P (указатель, т.к. Body.Content хранит
+// *para.CT_P). Мутации отражаются в документе.
+type Paragraph struct {
+    raw *para.CT_P
+}
+
+// --- Добавление ---
 func (p *Paragraph) AddRun(text string) *Run
+func (p *Paragraph) AddHyperlink(text, url string) *Run
+
+// --- Вставка ---
+// index — позиция в CT_P.Content[] (все ParagraphContent).
+// Возвращает error при index вне диапазона.
+func (p *Paragraph) InsertRunAt(index int, text string) (*Run, error)
+
+// --- Свойства ---
 func (p *Paragraph) SetStyle(styleID string)
 func (p *Paragraph) SetAlignment(jc string)
 func (p *Paragraph) SetSpacing(before, after units.DXA, line units.DXA, lineRule string)
 func (p *Paragraph) SetIndent(left, right, firstLine units.DXA)
 func (p *Paragraph) SetNumbering(numID, level int)
-func (p *Paragraph) AddHyperlink(text, url string) *Run
-func (p *Paragraph) Runs() []*Run
 
-// === Run ===
-type Run struct { /* wraps CT_R */ }
+// --- Чтение ---
+func (p *Paragraph) Runs() []*Run                     // только RunItem из Content (фильтр)
+func (p *Paragraph) RunCount() int                     // len(Runs())
+func (p *Paragraph) Text() string                      // конкатенация текста всех RunItem
+func (p *Paragraph) Style() string                     // PPr.PStyle.Val или ""
+
+// --- Удаление ---
+// index — позиция в CT_P.Content[] (все ParagraphContent, не только RunItem).
+// Возвращает error при index вне диапазона.
+func (p *Paragraph) RemoveRun(index int) error
+func (p *Paragraph) Clear()                            // удалить Content (PPr сохраняется)
+
+// --- Escape hatch ---
+func (p *Paragraph) X() *para.CT_P
+
+// ================================================================
+// Run — обёртка над run.CT_R
+// ================================================================
+
+// Run хранит *run.CT_R (указатель, т.к. para.RunItem хранит *run.CT_R).
+type Run struct {
+    raw *run.CT_R
+}
+
+// --- Контент ---
 func (r *Run) SetText(text string)
 func (r *Run) Text() string
+func (r *Run) AddBreak(breakType string)               // "page"|"column"|"textWrapping"
+func (r *Run) AddImage(imgData []byte, ext string, width, height units.EMU) error
+func (r *Run) AddTab()
+func (r *Run) Clear()                                  // удалить CT_R.Content (RPr сохраняется)
+
+// --- Форматирование (character properties) ---
 func (r *Run) SetBold(v bool)
 func (r *Run) SetItalic(v bool)
 func (r *Run) SetUnderline(style string)
@@ -1912,28 +2062,130 @@ func (r *Run) SetHighlight(color string)
 func (r *Run) SetStrikethrough(v bool)
 func (r *Run) SetSuperscript()
 func (r *Run) SetSubscript()
-func (r *Run) AddBreak(breakType string)
-func (r *Run) AddImage(imgData []byte, ext string, width, height units.EMU) error
-func (r *Run) AddTab()
 
-// === Table ===
-type Table struct { /* wraps CT_Tbl */ }
+// --- Чтение форматирования ---
+func (r *Run) Bold() bool
+func (r *Run) Italic() bool
+func (r *Run) FontSize() float64                       // pt, 0 если не задан
+func (r *Run) FontFamily() string                      // "" если не задан
+func (r *Run) Color() string                           // hex без #, "" если не задан
+
+// --- Escape hatch ---
+func (r *Run) X() *run.CT_R
+
+// ================================================================
+// Table — обёртка над table.CT_Tbl
+// ================================================================
+
+// Table хранит *table.CT_Tbl (указатель, т.к. Body.Content хранит
+// *table.CT_Tbl через embedded shared.BlockLevelMarker).
+type Table struct {
+    raw *table.CT_Tbl
+}
+
+// --- Добавление ---
+func (t *Table) AddRow() *Row
+
+// --- Вставка ---
+// index — позиция среди строк в CT_Tbl.Content[] (только CT_Row, не RawTblContent).
+// Возвращает error при index вне диапазона.
+func (t *Table) InsertRowAt(index int) (*Row, error)
+
+// --- Свойства ---
 func (t *Table) SetStyle(styleID string)
 func (t *Table) SetWidth(w int, wType string)
-func (t *Table) Cell(row, col int) *Cell
-func (t *Table) AddRow() *Row
 func (t *Table) SetBorders(style string)
 
-// === Cell ===
-type Cell struct { /* wraps CT_Tc */ }
+// --- Чтение ---
+func (t *Table) Cell(row, col int) *Cell
+func (t *Table) Rows() []*Row
+func (t *Table) RowCount() int
+func (t *Table) ColCount() int                         // по TblGrid.GridCol или длине первой строки
+
+// --- Удаление ---
+// index — позиция строки (как в Rows(), не в raw Content).
+// Возвращает error при index вне диапазона.
+func (t *Table) RemoveRow(index int) error
+
+// --- Escape hatch ---
+func (t *Table) X() *table.CT_Tbl
+
+// ================================================================
+// Row — обёртка над table.CT_Row (value type в interface slice!)
+// ================================================================
+
+// ⚠ CT_Row хранится как VALUE в tbl.Content []TblContent.
+// Row НЕ может хранить указатель на CT_Row — вместо этого хранит
+// указатель на родительскую таблицу + индекс строки.
+// При каждой операции: извлечь CT_Row из slice, мутировать, записать обратно.
+// Подробности: patterns.md раздел 15.
+type Row struct {
+    tbl *table.CT_Tbl  // родительская таблица
+    idx int            // позиция в tbl.Content (среди всех TblContent)
+}
+
+// --- Чтение ---
+func (r *Row) Cells() []*Cell
+func (r *Row) CellCount() int
+
+// --- Добавление ---
+func (r *Row) AddCell() *Cell
+
+// --- Удаление ---
+// index — позиция ячейки (как в Cells(), не в raw Content).
+// Возвращает error при index вне диапазона.
+func (r *Row) RemoveCell(index int) error
+
+// --- Escape hatch ---
+// Возвращает КОПИЮ CT_Row (value type). Мутации копии НЕ отражаются
+// в документе. Для прямых мутаций: Table.X().Content[i].(table.CT_Row),
+// мутация, запись обратно в Table.X().Content[i] (см. patterns.md 15).
+func (r *Row) X() table.CT_Row
+
+// ================================================================
+// Cell — обёртка над table.CT_Tc (value type в interface slice!)
+// ================================================================
+
+// ⚠ CT_Tc хранится как VALUE в row.Content []RowContent.
+// Cell НЕ может хранить указатель на CT_Tc — вместо этого хранит
+// координаты: указатель на таблицу + индекс строки + индекс ячейки.
+// Подробности: patterns.md раздел 15.
+type Cell struct {
+    tbl    *table.CT_Tbl  // корневая таблица
+    rowIdx int            // позиция CT_Row в tbl.Content
+    colIdx int            // позиция CT_Tc в row.Content
+}
+
+// --- Добавление ---
 func (c *Cell) AddParagraph() *Paragraph
+
+// --- Свойства ---
 func (c *Cell) SetWidth(w int, wType string)
 func (c *Cell) SetShading(fill string)
 func (c *Cell) MergeHorizontal(span int)
 func (c *Cell) MergeVertical(vmerge string)
 
-// === Section ===
-type Section struct { /* wraps CT_SectPr */ }
+// --- Чтение ---
+func (c *Cell) Paragraphs() []*Paragraph
+func (c *Cell) Tables() []*Table                       // вложенные таблицы
+
+// --- Удаление ---
+// Clear удаляет весь Content ячейки и вставляет пустой *para.CT_P{}.
+// Инвариант OOXML: каждая tc содержит ≥1 <w:p> (reference-appendix 5.6).
+// TcPr сохраняется.
+func (c *Cell) Clear()
+
+// --- Escape hatch ---
+// Возвращает КОПИЮ CT_Tc (value type). Мутации копии НЕ отражаются
+// в документе. Для прямых мутаций: извлечь row из Table.X().Content,
+// извлечь tc из row.Content, мутировать, записать обратно оба.
+func (c *Cell) X() table.CT_Tc
+
+// ================================================================
+// Section — обёртка над sectpr.CT_SectPr
+// ================================================================
+
+type Section struct { /* wraps *sectpr.CT_SectPr */ }
 func (s *Section) SetPageSize(w, h units.DXA)
 func (s *Section) SetLandscape()
 func (s *Section) SetPortrait()
@@ -1942,12 +2194,24 @@ func (s *Section) SetColumns(num int, space units.DXA)
 func (s *Section) AddHeader(hdrType string) *Header
 func (s *Section) AddFooter(ftrType string) *Footer
 
-// === Header / Footer ===
-type Header struct { /* wraps CT_HdrFtr */ }
-func (h *Header) AddParagraph() *Paragraph
+// --- Escape hatch ---
+func (s *Section) X() *sectpr.CT_SectPr
 
-type Footer struct { /* wraps CT_HdrFtr */ }
+// ================================================================
+// Header / Footer — обёртки над hdft.CT_HdrFtr
+// ================================================================
+
+type Header struct { /* wraps *hdft.CT_HdrFtr */ }
+func (h *Header) AddParagraph() *Paragraph
+func (h *Header) Paragraphs() []*Paragraph
+func (h *Header) Clear()                               // удалить Content, вставить *para.CT_P{}
+func (h *Header) X() *hdft.CT_HdrFtr
+
+type Footer struct { /* wraps *hdft.CT_HdrFtr */ }
 func (f *Footer) AddParagraph() *Paragraph
+func (f *Footer) Paragraphs() []*Paragraph
+func (f *Footer) Clear()                               // удалить Content, вставить *para.CT_P{}
+func (f *Footer) X() *hdft.CT_HdrFtr
 ```
 
 ---
@@ -1977,5 +2241,22 @@ func (f *Footer) AddParagraph() *Paragraph
 Структура вывода:
 - pkg/[module_path]/*.go — исходный код
 - pkg/[module_path]/*_test.go — тесты
-- Один файл = один логический блок (не более 300 строк на файл)
+- Один файл = один логический блок
+````
+
+### Дополнение для C-32 (`docx`)
+
+Модуль `docx` — особый: это тонкая обёртка, а не XML-маршализатор.
+Добавь к промпту:
+
+````
+Дополнительно для C-32 (`docx`):
+- Прочитай patterns.md разделы 14-17 (X(), value-type gotcha, FindText, Remove)
+- Прочитай reference-appendix.md раздел 5.15 (инварианты при редактировании)
+- Каждый wrapper хранит указатель на WML-тип, НЕ копирует данные
+- X() возвращает указатель (кроме Row — см. patterns.md раздел 15)
+- Cell.Clear(), Header.Clear(), Footer.Clear() — вставляют пустой <w:p/>
+- Все Remove*/InsertAt* — index-based, документируй инвалидацию индексов
+- Write-back при мутации CT_Row/CT_Tc (patterns.md раздел 15)
+- Тесты: Add→Read→Remove→Read→Validate для каждого уровня (Body/Para/Run/Table)
 ````

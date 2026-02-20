@@ -1368,7 +1368,7 @@ docx-go/
 │   └── websettings/    C-29  (0 deps — raw passthrough)
 ├── packaging/          C-30  (← opc, coreprops, parts/*, units)
 ├── validator/          C-31  (← packaging)
-└── docx/               C-32  (← packaging, validator, units)
+└── docx/               C-32  (← packaging, validator, units, wml/*, coreprops)
 ```
 
 ---
@@ -1450,3 +1450,303 @@ func TestPPrBaseRoundTrip(t *testing.T) {
 □ Написать round-trip тест (unmarshal → marshal → unmarshal → сравнить)
 □ go vet && go test ./...
 ```
+
+---
+
+# 14. Паттерн: X() escape hatch
+
+## 14.1 Проблема
+
+Высокоуровневый API (пакет `docx`, C-32) предоставляет convenience-методы
+`Add*`/`Remove*`/`Set*` для типичных сценариев. Однако покрыть **все**
+возможные операции с OOXML невозможно — спецификация слишком обширна.
+Пользователю нужен способ «выйти за рамки» обёртки к нижнему уровню.
+
+## 14.2 Решение
+
+Каждый wrapper-тип в пакете `docx` имеет метод `X()`, который возвращает
+доступ к нижележащему WML-типу:
+
+```go
+// Pointer-based wrappers (хранят указатель → X() возвращает указатель):
+func (d *Document) X() *packaging.Document
+func (b *Body) X() *body.CT_Body
+func (p *Paragraph) X() *para.CT_P       // Body.Content хранит *para.CT_P
+func (r *Run) X() *run.CT_R              // para.RunItem хранит *run.CT_R
+func (t *Table) X() *table.CT_Tbl        // Body.Content хранит *table.CT_Tbl
+func (s *Section) X() *sectpr.CT_SectPr
+func (h *Header) X() *hdft.CT_HdrFtr
+func (f *Footer) X() *hdft.CT_HdrFtr
+
+// Value-based wrappers (CT_Row/CT_Tc — value в interface slice → X() возвращает КОПИЮ):
+func (r *Row) X() table.CT_Row           // value, не pointer!
+func (c *Cell) X() table.CT_Tc           // value, не pointer!
+```
+
+**Почему Row и Cell возвращают value, а не pointer:**
+
+`CT_Row` хранится как value-type в `tbl.Content []TblContent` (interface slice).
+Go не предоставляет способа получить указатель на элемент внутри interface slice.
+При извлечении `tbl.Content[i].(table.CT_Row)` мы получаем **копию**.
+Мутации копии не отражаются на оригинале. Подробности: раздел 15.
+
+## 14.3 Конвенция
+
+| Правило | Описание |
+|---------|----------|
+| Имя | Всегда `X()` — одна буква, легко запомнить |
+| Возвращаемый тип | Указатель на WML-структуру для pointer-based; value-copy для Row/Cell (см. раздел 15) |
+| Семантика | Прямой доступ без копирования — мутации через `X()` отражаются в документе |
+| Гарантии | Никаких — пользователь берёт ответственность за инварианты (≥1 `<w:p>` в ячейке и пр.) |
+| Документирование | Каждый `X()` документирован комментарием с указанием типа и ограничений |
+
+## 14.4 Пример использования
+
+```go
+doc := docx.New()
+p := doc.Body().AddParagraph()
+
+// Через высокоуровневый API:
+p.SetStyle("Heading1")
+
+// Через escape hatch — прямой доступ к PPr:
+raw := p.X()
+raw.PPr.KeepNext = xmltypes.NewOnOff(true)
+
+// Прямая манипуляция Body.Content:
+bd := doc.Body().X()
+bd.Content = append(bd.Content[:2], bd.Content[3:]...) // удалить элемент [2]
+```
+
+## 14.5 Реализация в wrapper-структуре
+
+Каждый wrapper хранит **указатель** на нижележащий тип. `X()` — это
+просто геттер:
+
+```go
+// Body — пример реализации wrapper.
+type Body struct {
+    raw *body.CT_Body
+}
+
+func (b *Body) X() *body.CT_Body {
+    return b.raw
+}
+```
+
+Wrapper **не копирует** данные — он всего лишь хранит указатель.
+Следствие: два Wrapper, полученные из одного Document, указывают на
+одни и те же данные (share state).
+
+---
+
+# 15. Паттерн: Value-type в interface slice (CT_Row, CT_Tc)
+
+## 15.1 Проблема
+
+В пакете `wml/table` строки и ячейки хранятся как **значения** в
+interface-слайсах:
+
+```go
+type CT_Tbl struct {
+    Content []TblContent    // TblContent — interface
+}
+
+type CT_Row struct {        // CT_Row — value type, не *CT_Row
+    Content []RowContent    // RowContent — interface
+}
+
+// Unmarshal добавляет value (не pointer):
+tbl.Content = append(tbl.Content, row)  // row — CT_Row, не *CT_Row
+```
+
+Это означает, что при извлечении строки из `tbl.Content` мы получаем
+**копию**. Мутация копии НЕ отражается на оригинале:
+
+```go
+row := tbl.Content[0].(table.CT_Row)  // копия!
+row.TrPr = &table.CT_TrPr{...}       // изменяем копию
+// tbl.Content[0] — НЕ изменилось!
+```
+
+## 15.2 Решение в обёртке
+
+### Вариант A: Write-back после мутации
+
+После изменения копии — записать её обратно в слайс:
+
+```go
+row := tbl.Content[i].(table.CT_Row)
+// ... мутации ...
+tbl.Content[i] = row  // записать обратно
+```
+
+Это паттерн, уже используемый в `autofix.go` (validator).
+
+### Вариант B: Wrapper хранит индекс + указатель на таблицу
+
+```go
+type Row struct {
+    tbl *table.CT_Tbl  // родительская таблица
+    idx int            // позиция в tbl.Content
+}
+
+// При каждом чтении — извлекаем актуальное значение:
+func (r *Row) cells() []table.RowContent {
+    row := r.tbl.Content[r.idx].(table.CT_Row)
+    return row.Content
+}
+
+// При мутации — извлекаем, меняем, записываем обратно:
+func (r *Row) AddCell() *Cell {
+    row := r.tbl.Content[r.idx].(table.CT_Row)
+    tc := table.CT_Tc{Content: []shared.BlockLevelElement{&para.CT_P{}}}
+    row.Content = append(row.Content, tc)
+    r.tbl.Content[r.idx] = row  // write-back!
+    // ...
+}
+```
+
+### Вариант C (рекомендуемый): X() возвращает копию, рядом — XMut()
+
+```go
+// X() для чтения — возвращает копию (безопасно).
+func (r *Row) X() table.CT_Row {
+    return r.tbl.Content[r.idx].(table.CT_Row)
+}
+```
+
+Для сложных мутаций — пользователь использует `Table.X().Content` напрямую.
+
+## 15.3 Аналогичная ситуация с CT_Tc
+
+`CT_Tc` хранится как value в `CT_Row.Content`. Wrapper `Cell` должен
+применять те же паттерны write-back.
+
+```go
+type Cell struct {
+    tbl    *table.CT_Tbl
+    rowIdx int
+    colIdx int
+}
+```
+
+## 15.4 Ключевые инварианты
+
+| Инвариант | Где проверять |
+|-----------|--------------|
+| Индекс Row/Cell валиден | Перед каждой операцией чтения/записи |
+| CT_Tc.Content ≥ 1 элемент | После каждой мутации (Cell.Clear вставляет `<w:p/>`) |
+| Write-back после мутации | ВСЕГДА при работе с value-type в interface slice |
+
+---
+
+# 16. Паттерн: FindText / ReplaceText
+
+## 16.1 Область применения
+
+`Body.FindText()` и `Body.ReplaceText()` работают на уровне отдельных
+Run-ов (`<w:r>/<w:t>`). Это осознанное ограничение для v1.
+
+## 16.2 Ограничения
+
+| Ограничение | Причина |
+|-------------|---------|
+| Текст, разбитый между ранами, **не находится** | Word может разбить одно слово на несколько `<w:r>` при редактировании, вставке rsid, проверке орфографии |
+| **Не ищет внутри таблиц** | CT_Tc хранит value type, TextLocation не может однозначно адресовать ячейку; v2+ |
+| Не ищет в headers/footers/footnotes/comments | Они хранятся в отдельных parts |
+| Не ищет внутри SDT (content controls) | SDT вложены как RawXML |
+| Case-sensitive | Для v1 достаточно; case-insensitive можно добавить позже |
+
+## 16.3 Алгоритм FindText
+
+```
+Для каждого BlockLevelElement в Body.Content:
+    Если это *para.CT_P (type assert):
+        Для каждого ParagraphContent в CT_P.Content:
+            Если это para.RunItem:
+                Собрать весь текст из CT_R.Content (CT_Text элементы)
+                Если strings.Contains(fullText, needle):
+                    Добавить TextLocation{BlockIndex, RunIndex, Paragraph, Run}
+    Если это *table.CT_Tbl:
+        ПРОПУСТИТЬ (v1 — не ищем в таблицах)
+    Иначе (shared.RawXML и пр.):
+        ПРОПУСТИТЬ
+```
+
+## 16.4 Алгоритм ReplaceText
+
+```
+Аналогично FindText, но при нахождении:
+    Для каждого CT_Text в CT_R.Content:
+        text.Value = strings.ReplaceAll(text.Value, old, new)
+    Счётчик += количество замен
+```
+
+## 16.5 Пример
+
+```go
+doc, _ := docx.Open("report.docx")
+
+// Найти все вхождения:
+locs := doc.Body().FindText("PLACEHOLDER")
+
+// Заменить:
+count := doc.Body().ReplaceText("PLACEHOLDER", "Actual Value")
+fmt.Printf("Replaced %d occurrences\n", count)
+
+doc.Save("report_filled.docx")
+```
+
+## 16.6 Будущие расширения (v2+)
+
+- **Search in tables**: рекурсивный обход ячеек. Потребует расширить
+  `TextLocation` полями `Table`, `Row`, `Col` для адресации.
+- **Cross-run search**: объединять текст соседних ранов для поиска через
+  границы `<w:r>`. Сложность: при замене нужно корректно перераспределять
+  текст между ранами, сохраняя форматирование.
+- **Regex search**: `FindRegex(pattern string)`.
+- **Search in headers/footers**: через `Header.FindText()` / `Footer.FindText()`.
+
+---
+
+# 17. Паттерн: Remove / Insert — поддержание инвариантов
+
+## 17.1 Инварианты при удалении элементов
+
+При удалении block-level элементов из Body, строк из Table, ранов из
+Paragraph — необходимо учитывать инварианты OOXML:
+
+| Операция | Инварианты |
+|----------|-----------|
+| `Body.RemoveElement(i)` | Если удалённый параграф содержал section break (PPr.SectPr != nil), секция теряется — это допустимо, но пользователь должен быть осведомлён |
+| `Body.Clear()` | Не удаляет Body.SectPr (секция body-level сохраняется) |
+| `Table.RemoveRow(i)` | Если таблица становится пустой (0 строк) — допустимо (Word обработает), но validator выдаст предупреждение |
+| `Paragraph.RemoveRun(i)` | Параграф без ранов допустим (`<w:p/>` = пустая строка) |
+| `Paragraph.Clear()` | Сохраняет PPr (стиль, нумерация) — удаляет только Content |
+| `Cell.Clear()` | ОБЯЗАТЕЛЬНО вставляет `&para.CT_P{}` после очистки (инвариант ≥1 `<w:p>`) |
+| `Header.Clear()` / `Footer.Clear()` | Аналогично Cell — вставляет `&para.CT_P{}` |
+
+## 17.2 Orphan relationships
+
+При удалении элементов могут остаться «осиротевшие» relationships:
+
+- Удалён параграф с гиперссылкой → rId в document.xml.rels ссылается на
+  несуществующий контент
+- Удалён ран с картинкой → relationship на image part висит в воздухе
+
+**Решение для v1**: orphan relationships допустимы. Word их игнорирует,
+они не вызывают ошибок. Очистка — будущая оптимизация.
+
+## 17.3 Index-based API
+
+Все `Remove*`/`InsertAt*` используют integer index в соответствующем
+Content-слайсе. Это осознанный выбор:
+
+- Просто, предсказуемо, zero-alloc
+- Соответствует Go-идиоме работы со слайсами
+- Пользователь получает индексы через `Paragraphs()`, `Rows()`, `Runs()`
+
+**Правило**: после `Remove` или `InsertAt` все ранее полученные индексы
+и wrapper-объекты для элементов **после** точки вставки/удаления —
+**инвалидированы**. Это задокументировано в godoc каждого метода.
