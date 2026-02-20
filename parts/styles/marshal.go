@@ -466,70 +466,114 @@ func (st *CT_Style) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			switch t.Name.Local {
 			case "name":
 				st.Name = &xmltypes.CT_String{}
-				d.DecodeElement(st.Name, &t)
+				if err := d.DecodeElement(st.Name, &t); err != nil {
+					return err
+				}
 			case "aliases":
 				st.Aliases = &xmltypes.CT_String{}
-				d.DecodeElement(st.Aliases, &t)
+				if err := d.DecodeElement(st.Aliases, &t); err != nil {
+					return err
+				}
 			case "basedOn":
 				st.BasedOn = &xmltypes.CT_String{}
-				d.DecodeElement(st.BasedOn, &t)
+				if err := d.DecodeElement(st.BasedOn, &t); err != nil {
+					return err
+				}
 			case "next":
 				st.Next = &xmltypes.CT_String{}
-				d.DecodeElement(st.Next, &t)
+				if err := d.DecodeElement(st.Next, &t); err != nil {
+					return err
+				}
 			case "link":
 				st.Link = &xmltypes.CT_String{}
-				d.DecodeElement(st.Link, &t)
+				if err := d.DecodeElement(st.Link, &t); err != nil {
+					return err
+				}
 			case "autoRedefine":
 				st.AutoRedefine = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.AutoRedefine, &t)
+				if err := d.DecodeElement(st.AutoRedefine, &t); err != nil {
+					return err
+				}
 			case "hidden":
 				st.Hidden = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.Hidden, &t)
+				if err := d.DecodeElement(st.Hidden, &t); err != nil {
+					return err
+				}
 			case "uiPriority":
 				st.UIpriority = &xmltypes.CT_DecimalNumber{}
-				d.DecodeElement(st.UIpriority, &t)
+				if err := d.DecodeElement(st.UIpriority, &t); err != nil {
+					return err
+				}
 			case "semiHidden":
 				st.SemiHidden = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.SemiHidden, &t)
+				if err := d.DecodeElement(st.SemiHidden, &t); err != nil {
+					return err
+				}
 			case "unhideWhenUsed":
 				st.UnhideWhenUsed = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.UnhideWhenUsed, &t)
+				if err := d.DecodeElement(st.UnhideWhenUsed, &t); err != nil {
+					return err
+				}
 			case "qFormat":
 				st.QFormat = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.QFormat, &t)
+				if err := d.DecodeElement(st.QFormat, &t); err != nil {
+					return err
+				}
 			case "locked":
 				st.Locked = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.Locked, &t)
+				if err := d.DecodeElement(st.Locked, &t); err != nil {
+					return err
+				}
 			case "personal":
 				st.Personal = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.Personal, &t)
+				if err := d.DecodeElement(st.Personal, &t); err != nil {
+					return err
+				}
 			case "personalCompose":
 				st.PersonalCompose = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.PersonalCompose, &t)
+				if err := d.DecodeElement(st.PersonalCompose, &t); err != nil {
+					return err
+				}
 			case "personalReply":
 				st.PersonalReply = &xmltypes.CT_OnOff{}
-				d.DecodeElement(st.PersonalReply, &t)
+				if err := d.DecodeElement(st.PersonalReply, &t); err != nil {
+					return err
+				}
 			case "rsid":
 				st.Rsid = &xmltypes.CT_LongHexNumber{}
-				d.DecodeElement(st.Rsid, &t)
+				if err := d.DecodeElement(st.Rsid, &t); err != nil {
+					return err
+				}
 			case "pPr":
 				st.PPr = &ppr.CT_PPrBase{}
-				d.DecodeElement(st.PPr, &t)
+				if err := d.DecodeElement(st.PPr, &t); err != nil {
+					return err
+				}
 			case "rPr":
 				st.RPr = &rpr.CT_RPrBase{}
-				d.DecodeElement(st.RPr, &t)
+				if err := d.DecodeElement(st.RPr, &t); err != nil {
+					return err
+				}
 			case "tblPr":
 				st.TblPr = &table.CT_TblPr{}
-				d.DecodeElement(st.TblPr, &t)
+				if err := d.DecodeElement(st.TblPr, &t); err != nil {
+					return err
+				}
 			case "trPr":
 				st.TrPr = &table.CT_TrPr{}
-				d.DecodeElement(st.TrPr, &t)
+				if err := d.DecodeElement(st.TrPr, &t); err != nil {
+					return err
+				}
 			case "tcPr":
 				st.TcPr = &table.CT_TcPr{}
-				d.DecodeElement(st.TcPr, &t)
+				if err := d.DecodeElement(st.TcPr, &t); err != nil {
+					return err
+				}
 			case "tblStylePr":
 				var tsp CT_TblStylePr
-				d.DecodeElement(&tsp, &t)
+				if err := d.DecodeElement(&tsp, &t); err != nil {
+					return err
+				}
 				st.TblStylePr = append(st.TblStylePr, tsp)
 			default:
 				var raw shared.RawXML
@@ -593,19 +637,29 @@ func (tsp *CT_TblStylePr) UnmarshalXML(d *xml.Decoder, start xml.StartElement) e
 			switch t.Name.Local {
 			case "pPr":
 				tsp.PPr = &ppr.CT_PPrBase{}
-				d.DecodeElement(tsp.PPr, &t)
+				if err := d.DecodeElement(tsp.PPr, &t); err != nil {
+					return err
+				}
 			case "rPr":
 				tsp.RPr = &rpr.CT_RPrBase{}
-				d.DecodeElement(tsp.RPr, &t)
+				if err := d.DecodeElement(tsp.RPr, &t); err != nil {
+					return err
+				}
 			case "tblPr":
 				tsp.TblPr = &table.CT_TblPr{}
-				d.DecodeElement(tsp.TblPr, &t)
+				if err := d.DecodeElement(tsp.TblPr, &t); err != nil {
+					return err
+				}
 			case "trPr":
 				tsp.TrPr = &table.CT_TrPr{}
-				d.DecodeElement(tsp.TrPr, &t)
+				if err := d.DecodeElement(tsp.TrPr, &t); err != nil {
+					return err
+				}
 			case "tcPr":
 				tsp.TcPr = &table.CT_TcPr{}
-				d.DecodeElement(tsp.TcPr, &t)
+				if err := d.DecodeElement(tsp.TcPr, &t); err != nil {
+					return err
+				}
 			default:
 				d.Skip()
 			}
