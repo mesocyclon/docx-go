@@ -49,7 +49,9 @@ func unmarshalNumPr(d *xml.Decoder, _ xml.StartElement, np *CT_NumPr) error {
 					return err
 				}
 			default:
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -139,7 +141,9 @@ func unmarshalPBdr(d *xml.Decoder, _ xml.StartElement, pb *CT_PBdr) error {
 					return err
 				}
 			default:
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -179,7 +183,9 @@ func unmarshalTabs(d *xml.Decoder, _ xml.StartElement, tabs *CT_Tabs) error {
 				}
 				tabs.Tab = append(tabs.Tab, ts)
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -265,7 +271,9 @@ func unmarshalPPrChange(d *xml.Decoder, start xml.StartElement, pc *CT_PPrChange
 					return err
 				}
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil

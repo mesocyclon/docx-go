@@ -459,7 +459,9 @@ func (r *CT_DocRsids) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 				}
 				r.Rsid = append(r.Rsid, v)
 			default:
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -528,8 +530,7 @@ func (t *CT_ThemeFontLang) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 			t.Bidi = &s
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 // ---------------------------------------------------------------------------
@@ -586,8 +587,7 @@ func (c *CT_ClrSchemeMapping) UnmarshalXML(d *xml.Decoder, start xml.StartElemen
 			c.FollowedHyperlink = a.Value
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 // ---------------------------------------------------------------------------
@@ -635,8 +635,7 @@ func (w *CT_WriteProtection) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 			w.SpinCount = &n
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 func (p *CT_DocProtect) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
@@ -688,8 +687,7 @@ func (p *CT_DocProtect) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 			p.SpinCount = &n
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 // ---------------------------------------------------------------------------
@@ -720,8 +718,7 @@ func (z *CT_Zoom) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			z.Val = a.Value
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 // ---------------------------------------------------------------------------
@@ -748,8 +745,7 @@ func (p *CT_Proof) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			p.Grammar = &s
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 // ---------------------------------------------------------------------------

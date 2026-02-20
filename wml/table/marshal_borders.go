@@ -64,7 +64,7 @@ func unmarshalTblBorders(d *xml.Decoder, start *xml.StartElement, b *CT_TblBorde
 			case "insideV":
 				b.InsideV, err = decodeBorderChild(d, &t)
 			default:
-				d.Skip()
+				err = d.Skip()
 			}
 			if err != nil {
 				return err
@@ -123,7 +123,7 @@ func unmarshalTblCellMar(d *xml.Decoder, start *xml.StartElement, m *CT_TblCellM
 			case "end", "right":
 				m.End, err = decodeTblWidthChild(d, &t)
 			default:
-				d.Skip()
+				err = d.Skip()
 			}
 			if err != nil {
 				return err

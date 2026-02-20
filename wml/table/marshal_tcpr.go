@@ -252,7 +252,7 @@ func unmarshalTcBorders(d *xml.Decoder, start *xml.StartElement, b *CT_TcBorders
 			case "tr2bl":
 				b.Tr2bl, err = decodeBorderChild(d, &t)
 			default:
-				d.Skip()
+				err = d.Skip()
 			}
 			if err != nil {
 				return err

@@ -290,8 +290,7 @@ func unmarshalHdrFtrRef(d *xml.Decoder, t xml.StartElement, ref *CT_HdrFtrRef) e
 			ref.RID = attr.Value
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 func marshalPgSz(e *xml.Encoder, p *CT_PageSz) error {
@@ -335,8 +334,7 @@ func unmarshalPgSz(d *xml.Decoder, t xml.StartElement, p *CT_PageSz) error {
 			p.Code = &v
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 func marshalPgMar(e *xml.Encoder, p *CT_PageMar) error {
@@ -378,8 +376,7 @@ func unmarshalPgMar(d *xml.Decoder, t xml.StartElement, p *CT_PageMar) error {
 			p.Gutter = v
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 func marshalDocGrid(e *xml.Encoder, g *CT_DocGrid) error {
@@ -421,8 +418,7 @@ func unmarshalDocGrid(d *xml.Decoder, t xml.StartElement, g *CT_DocGrid) error {
 			g.CharSpace = &v
 		}
 	}
-	d.Skip()
-	return nil
+	return d.Skip()
 }
 
 func marshalCols(e *xml.Encoder, c *CT_Columns) error {
@@ -526,10 +522,14 @@ func unmarshalCols(d *xml.Decoder, t xml.StartElement, c *CT_Columns) error {
 						col.Space = &v
 					}
 				}
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 				c.Col = append(c.Col, col)
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil

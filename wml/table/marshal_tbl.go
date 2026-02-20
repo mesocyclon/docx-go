@@ -132,9 +132,13 @@ func unmarshalTblGrid(d *xml.Decoder, start *xml.StartElement, g *CT_TblGrid) er
 					}
 				}
 				g.GridCol = append(g.GridCol, col)
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil

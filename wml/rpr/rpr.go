@@ -128,7 +128,9 @@ func (c *CT_RPrChange) UnmarshalXML(d *xml.Decoder, start xml.StartElement) erro
 					return err
 				}
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil

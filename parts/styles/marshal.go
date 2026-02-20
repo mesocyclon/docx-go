@@ -166,7 +166,9 @@ func (dd *CT_DocDefaults) UnmarshalXML(d *xml.Decoder, start xml.StartElement) e
 					return err
 				}
 			default:
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -206,7 +208,9 @@ func (rd *CT_RPrDefault) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 					return err
 				}
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -246,7 +250,9 @@ func (pd *CT_PPrDefault) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 					return err
 				}
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -333,7 +339,9 @@ func (ls *CT_LatentStyles) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 				}
 				ls.LsdException = append(ls.LsdException, exc)
 			} else {
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil
@@ -661,7 +669,9 @@ func (tsp *CT_TblStylePr) UnmarshalXML(d *xml.Decoder, start xml.StartElement) e
 					return err
 				}
 			default:
-				d.Skip()
+				if err := d.Skip(); err != nil {
+					return err
+				}
 			}
 		case xml.EndElement:
 			return nil

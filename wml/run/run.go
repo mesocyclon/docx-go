@@ -240,7 +240,9 @@ func decodeRunChild(d *xml.Decoder, start xml.StartElement) (interface{}, error)
 			empty := &CT_EmptyRunContent{
 				XMLName: xml.Name{Space: start.Name.Space, Local: local},
 			}
-			d.Skip() // consume the (empty) element content
+			if err := d.Skip(); err != nil {
+				return nil, err
+			}
 			return empty, nil
 		}
 
