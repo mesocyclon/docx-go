@@ -10,6 +10,7 @@ func TestEmbeddedFilesExist(t *testing.T) {
 		"default-footer.xml",
 		"default-settings.xml",
 		"default-styles.xml",
+		"default-comments.xml",
 	}
 	for _, name := range files {
 		t.Run(name, func(t *testing.T) {
@@ -31,8 +32,8 @@ func TestEmbeddedFileCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FS.ReadDir(\".\") failed: %v", err)
 	}
-	if len(entries) != 5 {
-		t.Errorf("expected 5 embedded files, got %d", len(entries))
+	if len(entries) != 6 {
+		t.Errorf("expected 6 embedded files, got %d", len(entries))
 		for _, e := range entries {
 			t.Logf("  - %s", e.Name())
 		}

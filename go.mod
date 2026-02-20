@@ -1,3 +1,5 @@
 module github.com/user/go-docx
 
-go 1.22
+go 1.23.0
+
+require github.com/beevik/etree v1.6.0
