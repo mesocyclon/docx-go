@@ -27,12 +27,7 @@ func parseRels(data []byte) ([]Relationship, error) {
 	}
 	rels := make([]Relationship, len(xr.Relationships))
 	for i, r := range xr.Relationships {
-		rels[i] = Relationship{
-			ID:         r.ID,
-			Type:       r.Type,
-			Target:     r.Target,
-			TargetMode: r.TargetMode,
-		}
+		rels[i] = Relationship(r)
 	}
 	return rels, nil
 }
@@ -46,12 +41,7 @@ func buildRels(rels []Relationship) ([]byte, error) {
 		XMLName: xml.Name{Space: xmltypes.NSRelationships, Local: "Relationships"},
 	}
 	for _, r := range rels {
-		xr.Relationships = append(xr.Relationships, xmlRelationship{
-			ID:         r.ID,
-			Type:       r.Type,
-			Target:     r.Target,
-			TargetMode: r.TargetMode,
-		})
+		xr.Relationships = append(xr.Relationships, xmlRelationship(r))
 	}
 	return marshalXMLWithHeader(xr)
 }
