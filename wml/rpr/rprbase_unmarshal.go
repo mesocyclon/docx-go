@@ -37,7 +37,7 @@ func (b *CT_RPrBase) decodeChildren(d *xml.Decoder) error {
 
 // decodeField decodes a known child element. Returns true if handled.
 func (b *CT_RPrBase) decodeField(d *xml.Decoder, t *xml.StartElement) bool {
-	if !isWNS(t.Name.Space) {
+	if !xmltypes.IsWNS(t.Name.Space) {
 		return false
 	}
 	switch t.Name.Local {

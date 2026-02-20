@@ -90,6 +90,14 @@ func NormalizeNamespace(ns string) string {
 	return ns
 }
 
+// IsWNS reports whether space represents the WordprocessingML namespace.
+// It accepts: the Transitional URI (NSw), the Strict URI, an empty string
+// (encoding/xml omits the namespace for children of a prefixed parent),
+// and the bare prefix "w" (encoding/xml may use the prefix as Space).
+func IsWNS(space string) bool {
+	return NormalizeNamespace(space) == NSw || space == "" || space == "w"
+}
+
 // ============================================================
 // NormalizingDecoder — wraps xml.Decoder with auto-normalization
 // ============================================================

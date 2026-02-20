@@ -38,11 +38,6 @@ func encodeRaw(e *xml.Encoder, raw shared.RawXML) error {
 	return e.EncodeToken(start.End())
 }
 
-// isWNS returns true if the given namespace is the w: namespace.
-func isWNS(space string) bool {
-	return space == xmltypes.NSw || space == "" || space == "w"
-}
-
 // intToStr converts int to string.
 func intToStr(i int) string {
 	return strconv.Itoa(i)

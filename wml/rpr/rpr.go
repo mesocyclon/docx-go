@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
 
 // CT_RPr — full run properties including rPrChange for track changes.
@@ -52,7 +53,7 @@ func (r *CT_RPr) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		switch t := tok.(type) {
 		case xml.StartElement:
 			// Try rPrChange first.
-			if isWNS(t.Name.Space) && t.Name.Local == "rPrChange" {
+			if xmltypes.IsWNS(t.Name.Space) && t.Name.Local == "rPrChange" {
 				r.RPrChange = &CT_RPrChange{}
 				if err := d.DecodeElement(r.RPrChange, &t); err != nil {
 					return err

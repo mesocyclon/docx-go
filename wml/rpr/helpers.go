@@ -48,11 +48,3 @@ func decodeUnknown(d *xml.Decoder, start *xml.StartElement) (shared.RawXML, erro
 	}
 	return raw, nil
 }
-
-// isWNS returns true if the element belongs to the w: namespace
-// (transitional or strict).
-func isWNS(space string) bool {
-	return space == nsW ||
-		space == "" ||
-		space == "http://purl.oclc.org/ooxml/wordprocessingml/main"
-}

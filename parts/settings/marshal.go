@@ -29,91 +29,91 @@ func (s *CT_Settings) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 		case xml.StartElement:
 			switch {
 			// --- w: namespace typed elements ---
-			case t.Name.Local == "writeProtection" && isWNS(t.Name):
+			case t.Name.Local == "writeProtection" && xmltypes.IsWNS(t.Name.Space):
 				s.WriteProtection = &CT_WriteProtection{}
 				if err := d.DecodeElement(s.WriteProtection, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "writeProtection")
 
-			case t.Name.Local == "zoom" && isWNS(t.Name):
+			case t.Name.Local == "zoom" && xmltypes.IsWNS(t.Name.Space):
 				s.Zoom = &CT_Zoom{}
 				if err := d.DecodeElement(s.Zoom, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "zoom")
 
-			case t.Name.Local == "proofState" && isWNS(t.Name):
+			case t.Name.Local == "proofState" && xmltypes.IsWNS(t.Name.Space):
 				s.ProofState = &CT_Proof{}
 				if err := d.DecodeElement(s.ProofState, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "proofState")
 
-			case t.Name.Local == "defaultTabStop" && isWNS(t.Name):
+			case t.Name.Local == "defaultTabStop" && xmltypes.IsWNS(t.Name.Space):
 				s.DefaultTabStop = &xmltypes.CT_TwipsMeasure{}
 				if err := d.DecodeElement(s.DefaultTabStop, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "defaultTabStop")
 
-			case t.Name.Local == "characterSpacingControl" && isWNS(t.Name):
+			case t.Name.Local == "characterSpacingControl" && xmltypes.IsWNS(t.Name.Space):
 				s.CharacterSpacingControl = &xmltypes.CT_String{}
 				if err := d.DecodeElement(s.CharacterSpacingControl, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "characterSpacingControl")
 
-			case t.Name.Local == "evenAndOddHeaders" && isWNS(t.Name):
+			case t.Name.Local == "evenAndOddHeaders" && xmltypes.IsWNS(t.Name.Space):
 				s.EvenAndOddHeaders = &xmltypes.CT_OnOff{}
 				if err := d.DecodeElement(s.EvenAndOddHeaders, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "evenAndOddHeaders")
 
-			case t.Name.Local == "mirrorMargins" && isWNS(t.Name):
+			case t.Name.Local == "mirrorMargins" && xmltypes.IsWNS(t.Name.Space):
 				s.MirrorMargins = &xmltypes.CT_OnOff{}
 				if err := d.DecodeElement(s.MirrorMargins, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "mirrorMargins")
 
-			case t.Name.Local == "trackRevisions" && isWNS(t.Name):
+			case t.Name.Local == "trackRevisions" && xmltypes.IsWNS(t.Name.Space):
 				s.TrackRevisions = &xmltypes.CT_OnOff{}
 				if err := d.DecodeElement(s.TrackRevisions, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "trackRevisions")
 
-			case t.Name.Local == "doNotTrackMoves" && isWNS(t.Name):
+			case t.Name.Local == "doNotTrackMoves" && xmltypes.IsWNS(t.Name.Space):
 				s.DoNotTrackMoves = &xmltypes.CT_OnOff{}
 				if err := d.DecodeElement(s.DoNotTrackMoves, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "doNotTrackMoves")
 
-			case t.Name.Local == "doNotTrackFormatting" && isWNS(t.Name):
+			case t.Name.Local == "doNotTrackFormatting" && xmltypes.IsWNS(t.Name.Space):
 				s.DoNotTrackFormatting = &xmltypes.CT_OnOff{}
 				if err := d.DecodeElement(s.DoNotTrackFormatting, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "doNotTrackFormatting")
 
-			case t.Name.Local == "documentProtection" && isWNS(t.Name):
+			case t.Name.Local == "documentProtection" && xmltypes.IsWNS(t.Name.Space):
 				s.DocumentProtection = &CT_DocProtect{}
 				if err := d.DecodeElement(s.DocumentProtection, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "documentProtection")
 
-			case t.Name.Local == "compat" && isWNS(t.Name):
+			case t.Name.Local == "compat" && xmltypes.IsWNS(t.Name.Space):
 				s.Compat = &CT_Compat{}
 				if err := d.DecodeElement(s.Compat, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "compat")
 
-			case t.Name.Local == "rsids" && isWNS(t.Name):
+			case t.Name.Local == "rsids" && xmltypes.IsWNS(t.Name.Space):
 				s.Rsids = &CT_DocRsids{}
 				if err := d.DecodeElement(s.Rsids, &t); err != nil {
 					return err
@@ -128,21 +128,21 @@ func (s *CT_Settings) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 				s.MathPr = raw
 				s.elementOrder = append(s.elementOrder, "m:mathPr")
 
-			case t.Name.Local == "themeFontLang" && isWNS(t.Name):
+			case t.Name.Local == "themeFontLang" && xmltypes.IsWNS(t.Name.Space):
 				s.ThemeFontLang = &CT_ThemeFontLang{}
 				if err := d.DecodeElement(s.ThemeFontLang, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "themeFontLang")
 
-			case t.Name.Local == "clrSchemeMapping" && isWNS(t.Name):
+			case t.Name.Local == "clrSchemeMapping" && xmltypes.IsWNS(t.Name.Space):
 				s.ClrSchemeMapping = &CT_ClrSchemeMapping{}
 				if err := d.DecodeElement(s.ClrSchemeMapping, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "clrSchemeMapping")
 
-			case t.Name.Local == "shapeDefaults" && isWNS(t.Name):
+			case t.Name.Local == "shapeDefaults" && xmltypes.IsWNS(t.Name.Space):
 				raw := &shared.RawXML{}
 				if err := d.DecodeElement(raw, &t); err != nil {
 					return err
@@ -150,14 +150,14 @@ func (s *CT_Settings) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 				s.ShapeDefaults = raw
 				s.elementOrder = append(s.elementOrder, "shapeDefaults")
 
-			case t.Name.Local == "decimalSymbol" && isWNS(t.Name):
+			case t.Name.Local == "decimalSymbol" && xmltypes.IsWNS(t.Name.Space):
 				s.DecimalSymbol = &xmltypes.CT_String{}
 				if err := d.DecodeElement(s.DecimalSymbol, &t); err != nil {
 					return err
 				}
 				s.elementOrder = append(s.elementOrder, "decimalSymbol")
 
-			case t.Name.Local == "listSeparator" && isWNS(t.Name):
+			case t.Name.Local == "listSeparator" && xmltypes.IsWNS(t.Name.Space):
 				s.ListSeparator = &xmltypes.CT_String{}
 				if err := d.DecodeElement(s.ListSeparator, &t); err != nil {
 					return err
@@ -387,7 +387,7 @@ func (c *CT_Compat) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
-			if t.Name.Local == "compatSetting" && isWNS(t.Name) {
+			if t.Name.Local == "compatSetting" && xmltypes.IsWNS(t.Name.Space) {
 				var cs CT_CompatSetting
 				if err := d.DecodeElement(&cs, &t); err != nil {
 					return err
@@ -751,12 +751,6 @@ func (p *CT_Proof) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-// isWNS returns true if the name belongs to the w: namespace (or has no
-// namespace, which encoding/xml sometimes produces for child elements).
-func isWNS(name xml.Name) bool {
-	return name.Space == xmltypes.NSw || name.Space == ""
-}
 
 // encodeChild encodes v as a child element. The caller must ensure v is
 // non-nil before calling this function.

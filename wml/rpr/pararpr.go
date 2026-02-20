@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
 
 // CT_ParaRPr — default run properties inside pPr/rPr.
@@ -57,7 +58,7 @@ func (p *CT_ParaRPr) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error 
 		}
 		switch t := tok.(type) {
 		case xml.StartElement:
-			if isWNS(t.Name.Space) {
+			if xmltypes.IsWNS(t.Name.Space) {
 				switch t.Name.Local {
 				case "ins":
 					p.Ins = &CT_TrackChangeRef{}
