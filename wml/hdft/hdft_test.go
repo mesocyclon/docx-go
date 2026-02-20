@@ -7,14 +7,8 @@ import (
 	"testing"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
-
-// =========================================================================
-// Stub types — minimal paragraph for testing without importing wml/para.
-// In production the para package registers its own factory via init().
-// =========================================================================
-
-const testNSw = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 // stubParagraph is a tiny test-only stand-in for CT_P.  It round-trips the
 // inner XML verbatim so we can verify that hdft preserves content.
@@ -24,7 +18,7 @@ type stubParagraph struct {
 }
 
 func (p *stubParagraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	st := xml.StartElement{Name: xml.Name{Space: testNSw, Local: "p"}}
+	st := xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "p"}}
 	if err := e.EncodeToken(st); err != nil {
 		return err
 	}
@@ -307,7 +301,7 @@ func TestDefaultNamespacesForNewDocument(t *testing.T) {
 	}
 
 	outStr := string(out)
-	if !strings.Contains(outStr, nsW) {
+	if !strings.Contains(outStr, xmltypes.NSw) {
 		t.Errorf("default namespace missing w: %q", outStr)
 	}
 }

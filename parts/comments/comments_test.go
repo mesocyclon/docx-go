@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
 
 // referenceXML is the comments.xml sample from reference-appendix.md § 3.5.
@@ -359,7 +360,7 @@ func TestSerializeNewDocument(t *testing.T) {
 				Initials: "A",
 				Content: []shared.BlockLevelElement{
 					shared.RawXML{
-						XMLName: xml.Name{Space: nsW, Local: "p"},
+						XMLName: xml.Name{Space: xmltypes.NSw, Local: "p"},
 						Inner:   []byte(`<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:t>New comment</w:t></w:r>`),
 					},
 				},

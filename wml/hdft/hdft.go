@@ -15,11 +15,8 @@ import (
 	"fmt"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
-
-// WML namespace (Transitional).  Defined locally because the hdft
-// package only imports wml/shared per the dependency contract.
-const nsW = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 // CT_HdrFtr is the complex type for both <w:hdr> and <w:ftr>.
 // Per the spec a header/footer must contain at least one <w:p/>.
@@ -145,7 +142,7 @@ func (hf *CT_HdrFtr) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 // header/footer part.
 func defaultNamespaces() []xml.Attr {
 	return []xml.Attr{
-		{Name: xml.Name{Local: "xmlns:w"}, Value: nsW},
-		{Name: xml.Name{Local: "xmlns:r"}, Value: "http://schemas.openxmlformats.org/officeDocument/2006/relationships"},
+		{Name: xml.Name{Local: "xmlns:w"}, Value: xmltypes.NSw},
+		{Name: xml.Name{Local: "xmlns:r"}, Value: xmltypes.NSr},
 	}
 }

@@ -11,10 +11,8 @@ import (
 	"fmt"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
-
-// Namespace constant (WordprocessingML main).
-const nsW = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 // ============================================================
 // Types
@@ -94,7 +92,7 @@ func (c *CT_Comments) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	for i := range c.Comment {
 		elemStart := xml.StartElement{
-			Name: xml.Name{Space: nsW, Local: "comment"},
+			Name: xml.Name{Space: xmltypes.NSw, Local: "comment"},
 		}
 		if err := e.EncodeElement(&c.Comment[i], elemStart); err != nil {
 			return err
@@ -145,19 +143,19 @@ func (c *CT_Comments) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error
 func (cm *CT_Comment) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	// Attributes — must be in w: namespace.
 	start.Attr = append(start.Attr, xml.Attr{
-		Name: xml.Name{Space: nsW, Local: "id"}, Value: fmt.Sprintf("%d", cm.ID),
+		Name: xml.Name{Space: xmltypes.NSw, Local: "id"}, Value: fmt.Sprintf("%d", cm.ID),
 	})
 	start.Attr = append(start.Attr, xml.Attr{
-		Name: xml.Name{Space: nsW, Local: "author"}, Value: cm.Author,
+		Name: xml.Name{Space: xmltypes.NSw, Local: "author"}, Value: cm.Author,
 	})
 	if cm.Date != "" {
 		start.Attr = append(start.Attr, xml.Attr{
-			Name: xml.Name{Space: nsW, Local: "date"}, Value: cm.Date,
+			Name: xml.Name{Space: xmltypes.NSw, Local: "date"}, Value: cm.Date,
 		})
 	}
 	if cm.Initials != "" {
 		start.Attr = append(start.Attr, xml.Attr{
-			Name: xml.Name{Space: nsW, Local: "initials"}, Value: cm.Initials,
+			Name: xml.Name{Space: xmltypes.NSw, Local: "initials"}, Value: cm.Initials,
 		})
 	}
 
@@ -242,7 +240,7 @@ func marshalBlockElement(e *xml.Encoder, el shared.BlockLevelElement) error {
 		// Typed element — the element knows how to marshal itself.
 		// We need to derive a start element. If the element implements
 		// xml.Marshaler, EncodeElement will use it.
-		return e.EncodeElement(v, xml.StartElement{Name: xml.Name{Space: nsW, Local: "unknownBlock"}})
+		return e.EncodeElement(v, xml.StartElement{Name: xml.Name{Space: xmltypes.NSw, Local: "unknownBlock"}})
 	}
 }
 
@@ -284,6 +282,6 @@ func parseInt(s string) (int, error) {
 // comments.xml document.
 func defaultNamespaces() []xml.Attr {
 	return []xml.Attr{
-		{Name: xml.Name{Local: "xmlns:w"}, Value: nsW},
+		{Name: xml.Name{Local: "xmlns:w"}, Value: xmltypes.NSw},
 	}
 }

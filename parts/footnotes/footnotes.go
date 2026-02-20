@@ -16,10 +16,8 @@ import (
 	"strconv"
 
 	"github.com/vortex/docx-go/wml/shared"
+	"github.com/vortex/docx-go/xmltypes"
 )
-
-// Namespace URI for the WordprocessingML main namespace.
-const nsW = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 // ---------------------------------------------------------------------------
 // CT_Footnotes — root element of footnotes.xml (or endnotes.xml)
@@ -144,7 +142,7 @@ func (fn CT_Footnotes) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 // newly-created footnotes/endnotes root element.
 func defaultNamespaces() []xml.Attr {
 	return []xml.Attr{
-		{Name: xml.Name{Local: "xmlns:w"}, Value: nsW},
+		{Name: xml.Name{Local: "xmlns:w"}, Value: xmltypes.NSw},
 	}
 }
 
@@ -289,7 +287,7 @@ func nsToPrefix(space, local string) string {
 		return local
 	}
 	switch space {
-	case nsW:
+	case xmltypes.NSw:
 		return "w:" + local
 	default:
 		// For unresolved prefix strings ("w", "r", …) from innerxml
