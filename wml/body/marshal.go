@@ -153,22 +153,22 @@ func marshalBlockElement(e *xml.Encoder, el interface{}) error {
 // reference the same Space URI reuse the declared prefixes.
 func defaultDocumentNamespaces() []xml.Attr {
 	return []xml.Attr{
-		nsattr("wpc", "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"),
+		nsattr("wpc", xmltypes.NSwpc),
 		nsattr("mc", xmltypes.NSmc),
 		nsattr("o", xmltypes.NSo),
 		nsattr("r", xmltypes.NSr),
 		nsattr("m", xmltypes.NSm),
 		nsattr("v", xmltypes.NSv),
-		nsattr("wp14", "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"),
+		nsattr("wp14", xmltypes.NSwp14),
 		nsattr("wp", xmltypes.NSwp),
 		nsattr("w10", xmltypes.NSw10),
 		nsattr("w", xmltypes.NSw),
 		nsattr("w14", xmltypes.NSw14),
 		nsattr("w15", xmltypes.NSw15),
-		nsattr("wpg", "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"),
-		nsattr("wpi", "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"),
-		nsattr("wne", "http://schemas.microsoft.com/office/word/2006/wordml"),
-		nsattr("wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"),
+		nsattr("wpg", xmltypes.NSwpg),
+		nsattr("wpi", xmltypes.NSwpi),
+		nsattr("wne", xmltypes.NSwne),
+		nsattr("wps", xmltypes.NSwps),
 		// mc:Ignorable is a regular (non-xmlns) attribute in the mc namespace.
 		{Name: xml.Name{Space: xmltypes.NSmc, Local: "Ignorable"}, Value: "w14 w15 wp14"},
 	}

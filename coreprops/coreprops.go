@@ -8,17 +8,6 @@ import (
 	"time"
 )
 
-// Namespace URIs used in core/app properties.
-const (
-	nsCP      = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
-	nsDC      = "http://purl.org/dc/elements/1.1/"
-	nsDCTerms = "http://purl.org/dc/terms/"
-	nsDCMIType = "http://purl.org/dc/dcmitype/"
-	nsXSI     = "http://www.w3.org/2001/XMLSchema-instance"
-	nsEP      = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
-	nsVT      = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
-)
-
 // W3CDTF is the time format used by Dublin Core / XSD dateTime in OOXML.
 const w3cdtf = "2006-01-02T15:04:05Z"
 
@@ -85,17 +74,17 @@ func DefaultApp() *AppProperties {
 type xmlCoreProperties struct {
 	XMLName xml.Name `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties coreProperties"`
 
-	Title          string `xml:"http://purl.org/dc/elements/1.1/ title"`
-	Subject        string `xml:"http://purl.org/dc/elements/1.1/ subject"`
-	Creator        string `xml:"http://purl.org/dc/elements/1.1/ creator"`
-	Keywords       string `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties keywords"`
-	Description    string `xml:"http://purl.org/dc/elements/1.1/ description"`
-	LastModifiedBy string `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties lastModifiedBy"`
-	Revision       string `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties revision"`
+	Title          string     `xml:"http://purl.org/dc/elements/1.1/ title"`
+	Subject        string     `xml:"http://purl.org/dc/elements/1.1/ subject"`
+	Creator        string     `xml:"http://purl.org/dc/elements/1.1/ creator"`
+	Keywords       string     `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties keywords"`
+	Description    string     `xml:"http://purl.org/dc/elements/1.1/ description"`
+	LastModifiedBy string     `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties lastModifiedBy"`
+	Revision       string     `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties revision"`
 	Created        *xmlW3CDTF `xml:"http://purl.org/dc/terms/ created"`
 	Modified       *xmlW3CDTF `xml:"http://purl.org/dc/terms/ modified"`
-	Category       string `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties category,omitempty"`
-	ContentStatus  string `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties contentStatus,omitempty"`
+	Category       string     `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties category,omitempty"`
+	ContentStatus  string     `xml:"http://schemas.openxmlformats.org/package/2006/metadata/core-properties contentStatus,omitempty"`
 }
 
 // xmlW3CDTF represents a dcterms date element with xsi:type="dcterms:W3CDTF".

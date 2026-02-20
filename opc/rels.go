@@ -1,13 +1,15 @@
 package opc
 
-import "encoding/xml"
+import (
+	"encoding/xml"
 
-const nsRelationships = "http://schemas.openxmlformats.org/package/2006/relationships"
+	"github.com/vortex/docx-go/xmltypes"
+)
 
 // xmlRelationships represents a .rels XML document.
 type xmlRelationships struct {
-	XMLName       xml.Name            `xml:"Relationships"`
-	Relationships []xmlRelationship   `xml:"Relationship"`
+	XMLName       xml.Name          `xml:"Relationships"`
+	Relationships []xmlRelationship `xml:"Relationship"`
 }
 
 type xmlRelationship struct {
@@ -41,7 +43,7 @@ func buildRels(rels []Relationship) ([]byte, error) {
 		return nil, nil
 	}
 	xr := xmlRelationships{
-		XMLName: xml.Name{Space: nsRelationships, Local: "Relationships"},
+		XMLName: xml.Name{Space: xmltypes.NSRelationships, Local: "Relationships"},
 	}
 	for _, r := range rels {
 		xr.Relationships = append(xr.Relationships, xmlRelationship{

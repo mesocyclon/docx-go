@@ -5,9 +5,9 @@ import (
 	"path"
 	"sort"
 	"strings"
-)
 
-const nsContentTypes = "http://schemas.openxmlformats.org/package/2006/content-types"
+	"github.com/vortex/docx-go/xmltypes"
+)
 
 // xmlTypes represents the root of [Content_Types].xml.
 type xmlTypes struct {
@@ -46,7 +46,7 @@ func parseContentTypes(data []byte) (defaults map[string]string, overrides map[s
 // buildContentTypes constructs [Content_Types].xml bytes from the package state.
 func buildContentTypes(pkg *Package) ([]byte, error) {
 	ct := xmlTypes{
-		XMLName: xml.Name{Space: nsContentTypes, Local: "Types"},
+		XMLName: xml.Name{Space: xmltypes.NSContentTypes, Local: "Types"},
 	}
 
 	// Collect defaults: start from stored defaults, ensure rels + xml present.

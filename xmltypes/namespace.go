@@ -39,6 +39,14 @@ const (
 	NSw15   = "http://schemas.microsoft.com/office/word/2012/wordml"
 	NSw16se = "http://schemas.microsoft.com/office/word/2015/wordml/symex"
 
+	// Microsoft WordprocessingDrawing / Canvas / Shape extensions
+	NSwpc  = "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+	NSwp14 = "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing"
+	NSwpg  = "http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+	NSwpi  = "http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+	NSwne  = "http://schemas.microsoft.com/office/word/2006/wordml"
+	NSwps  = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+
 	// OPC / Package
 	NSContentTypes  = "http://schemas.openxmlformats.org/package/2006/content-types"
 	NSRelationships = "http://schemas.openxmlformats.org/package/2006/relationships"

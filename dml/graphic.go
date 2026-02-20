@@ -8,8 +8,6 @@ import (
 	"github.com/vortex/docx-go/xmltypes"
 )
 
-const picURI = "http://schemas.openxmlformats.org/drawingml/2006/picture"
-
 // ---------------------------------------------------------------------------
 // A_Graphic
 // ---------------------------------------------------------------------------

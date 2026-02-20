@@ -3,6 +3,8 @@ package coreprops
 import (
 	"bytes"
 	"encoding/xml"
+
+	"github.com/vortex/docx-go/xmltypes"
 )
 
 // marshalCoreXML serializes core properties with correct namespace prefixes.
@@ -16,11 +18,11 @@ func marshalCoreXML(x *xmlCoreProperties) ([]byte, error) {
 	start := xml.StartElement{
 		Name: xml.Name{Local: "cp:coreProperties"},
 		Attr: []xml.Attr{
-			{Name: xml.Name{Local: "xmlns:cp"}, Value: nsCP},
-			{Name: xml.Name{Local: "xmlns:dc"}, Value: nsDC},
-			{Name: xml.Name{Local: "xmlns:dcterms"}, Value: nsDCTerms},
-			{Name: xml.Name{Local: "xmlns:dcmitype"}, Value: nsDCMIType},
-			{Name: xml.Name{Local: "xmlns:xsi"}, Value: nsXSI},
+			{Name: xml.Name{Local: "xmlns:cp"}, Value: xmltypes.NScp},
+			{Name: xml.Name{Local: "xmlns:dc"}, Value: xmltypes.NSdc},
+			{Name: xml.Name{Local: "xmlns:dcterms"}, Value: xmltypes.NSdcterms},
+			{Name: xml.Name{Local: "xmlns:dcmitype"}, Value: xmltypes.NSdcmitype},
+			{Name: xml.Name{Local: "xmlns:xsi"}, Value: xmltypes.NSxsi},
 		},
 	}
 	if err := e.EncodeToken(start); err != nil {
@@ -79,8 +81,8 @@ func marshalAppXML(x *xmlAppProperties) ([]byte, error) {
 	start := xml.StartElement{
 		Name: xml.Name{Local: "Properties"},
 		Attr: []xml.Attr{
-			{Name: xml.Name{Local: "xmlns"}, Value: nsEP},
-			{Name: xml.Name{Local: "xmlns:vt"}, Value: nsVT},
+			{Name: xml.Name{Local: "xmlns"}, Value: xmltypes.NSep},
+			{Name: xml.Name{Local: "xmlns:vt"}, Value: xmltypes.NSvt},
 		},
 	}
 	if err := e.EncodeToken(start); err != nil {
