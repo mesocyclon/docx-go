@@ -222,7 +222,7 @@ func resolveAttrType(attr Attribute) (goType, zeroExpr, defaultExpr, parseExpr, 
 			fromFn := inner + "FromXml"
 			return attr.Type, "nil", "nil",
 				fmt.Sprintf("parseOptionalEnum(val, %s)", fromFn),
-				fmt.Sprintf("(*v).ToXml()")
+				"(*v).ToXml()"
 		}
 		// Required or value enum
 		fromFn := attr.Type + "FromXml"
