@@ -9,6 +9,8 @@ import (
 	"text/template"
 )
 
+// go run ./cmd/codegen -schema ./schema/ -out ./pkg/docx/oxml/
+
 //go:embed templates/element.go.tmpl
 var templateFS embed.FS
 
